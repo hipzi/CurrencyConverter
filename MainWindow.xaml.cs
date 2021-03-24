@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -17,9 +19,6 @@ using System.Windows.Shapes;
 
 namespace CurrencyConverter_Static
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         public MainWindow()
@@ -28,28 +27,48 @@ namespace CurrencyConverter_Static
             BindCurrency();
         }
 
+        private double getRate(string fromCurrency, string toCurrency)
+        {
+            var json = "";
+            double rate;
+            try
+            {
+                string url = string.Format("https://free.currconv.com/api/v7/convert?q={0}_{1}&compact=ultra&apiKey=cd0304f3d4c6b7e923d3", fromCurrency.ToUpper(), toCurrency.ToUpper());
+                string key = string.Format("{0}_{1}", fromCurrency.ToUpper(), toCurrency.ToUpper());
+
+                json = new WebClient().DownloadString(url);
+                dynamic stuff = JsonConvert.DeserializeObject(json);
+                rate = stuff[key];
+            }
+            catch
+            {
+                rate = 0;
+            }
+            return rate;
+        }
+
         private void BindCurrency()
         {
             DataTable dtCurrency = new DataTable();
             dtCurrency.Columns.Add("Text");
-            dtCurrency.Columns.Add("Value");
 
-            dtCurrency.Rows.Add("--SELECT--", 0);
-            dtCurrency.Rows.Add("INR", 1);
-            dtCurrency.Rows.Add("USD", 75);
-            dtCurrency.Rows.Add("EUR", 85);
-            dtCurrency.Rows.Add("SAR", 20);
-            dtCurrency.Rows.Add("POUND", 5);
-            dtCurrency.Rows.Add("DEM", 43);
+            dtCurrency.Rows.Add("--SELECT--");
+            dtCurrency.Rows.Add("IDR");
+            dtCurrency.Rows.Add("INR");
+            dtCurrency.Rows.Add("USD");
+            dtCurrency.Rows.Add("EUR");
+            dtCurrency.Rows.Add("SAR");
+            dtCurrency.Rows.Add("BAM");
+            dtCurrency.Rows.Add("PYG");
+            dtCurrency.Rows.Add("TRY");
+            dtCurrency.Rows.Add("JPY");
 
             cmbFromCurrency.ItemsSource = dtCurrency.DefaultView;
             cmbFromCurrency.DisplayMemberPath = "Text";
-            cmbFromCurrency.SelectedValuePath = "Value";
             cmbFromCurrency.SelectedIndex = 0;
 
             cmbToCurrency.ItemsSource = dtCurrency.DefaultView;
             cmbToCurrency.DisplayMemberPath = "Text";
-            cmbToCurrency.SelectedValuePath = "Value";
             cmbToCurrency.SelectedIndex = 0;
         }
 
@@ -64,20 +83,6 @@ namespace CurrencyConverter_Static
                 return;
             }
 
-            else if (cmbFromCurrency.SelectedValue == null || cmbFromCurrency.SelectedIndex == 0)
-            {
-                MessageBox.Show("Please Select Currency From", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-                cmbFromCurrency.Focus();
-                return;
-            }
-
-            else if (cmbToCurrency.SelectedValue == null || cmbToCurrency.SelectedIndex == 0)
-            {
-                MessageBox.Show("Please Select Currency To", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-                cmbToCurrency.Focus();
-                return;
-            }
-
             if (cmbFromCurrency.Text == cmbToCurrency.Text)
             {
                 ConvertedValue = double.Parse(txtCurrency.Text);
@@ -85,9 +90,8 @@ namespace CurrencyConverter_Static
             }
             else
             {
-                ConvertedValue = (double.Parse(cmbFromCurrency.SelectedValue.ToString()) * 
-                    double.Parse(txtCurrency.Text)) / 
-                    double.Parse(cmbToCurrency.SelectedValue.ToString());
+                double rate = getRate(cmbFromCurrency.Text, cmbToCurrency.Text);
+                ConvertedValue = (rate * double.Parse(txtCurrency.Text));
                 lblCurrency.Content = cmbToCurrency.Text + " " + ConvertedValue.ToString("N3");
             }
         }
